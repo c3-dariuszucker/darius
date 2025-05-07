@@ -1,0 +1,439 @@
+# Battleship Fort N
+
+Battleship Fort N is a classic text-based implementation of the Battleship board game written in Fortran. This console application lets players engage in strategic naval combat against an AI opponent or watch AI-vs-AI battles. Players can place ships on a 10x10 grid, take turns firing at enemy positions, and track hits and misses with visual grid displays and scoring systems.
+
+## Key Features
+
+- **Multiple Game Modes**: Play against an AI opponent or watch AI-vs-AI battles
+- **Interactive Ship Placement**: Manually position your fleet or use automatic random placement
+- **Intelligent AI Opponent**: Multi-stage tactical AI that evolves from random targeting to advanced search patterns
+- **Visual Grid Display**: ASCII-based grid visualization showing both defense and offense boards
+- **Ship Status Tracking**: Monitor which ships are hit and sunk with detailed scoring
+- **Configurable Settings**: Customize gameplay through configuration options
+- **Cross-Platform**: Built with standard Fortran with minimal external dependencies
+- **ASCII Art Interface**: Includes stylized logo and intuitive text-based UI elements
+
+# Layout and Architecture
+```
+└── darius/
+    ├── c3-dariuszucker-darius-470889e/          # Latest version of the Battleships game
+    │   ├── battleships.f90                      # Core module with game logic, ship placement, AI
+    │   ├── main.f90                             # Main program entry point
+    │   ├── misc.f90                             # Utility functions (string handling, sorting)
+    │   ├── sleep.c                              # C implementation of the sleep function
+    │   ├── README.md                            # Documentation
+    │   ├── fpm.toml                             # Fortran Package Manager configuration
+    │   └── CMakeLists.txt                       # Build configuration
+    │
+    └── c3-dariuszucker-darius-ee4ee60/          # Earlier version of the Battleships game
+        ├── battleships.f90                      # Core game module (earlier version)
+        ├── main.f90                             # Main program (earlier version)
+        ├── misc.f90                             # Utility functions (earlier version)
+        ├── sleep.c                              # Sleep function implementation
+        ├── README.md                            # Documentation
+        ├── fpm.toml                             # Fortran Package Manager configuration
+        └── CMakeLists.txt                       # Build configuration
+```
+
+```mermaid
+graph TD
+    subgraph battleships-game
+        A[Main Program] --> B[Game Logic]
+        B --> C{Game Mode}
+        C -->|Player vs AI| D[Player Turn]
+        C -->|AI vs AI| E[AI Simulation]
+        B --> F[Utilities]
+
+        subgraph "Entry Point"
+            A
+        end
+
+        subgraph "Core Logic"
+            B
+            C
+        end
+
+        subgraph "Game Flow"
+            D
+            E
+        end
+
+        subgraph "Support Functions"
+            F
+        end
+    end
+
+    A -.-> main["battleships_game (Program)"]
+    B -.-> battleships_mod["battleships_mod (Module)"]
+    B -.-> ship["ship (Type)"]
+    B -.-> target["target (Type)"]
+    C -.-> ai["ai()"]
+    D -.-> grid_2["grid_2()"]
+    D -.-> shipdata["shipdata()"]
+    E -.-> ai_saved_data["ai_saved_data (Type)"]
+    F -.-> misc_mod["misc_mod (Module)"]
+    F -.-> sleep["sleep()"]
+    F -.-> convert_char2num["convert_char2num()"]
+```
+
+# Usage Examples
+
+## Building
+
+### Building with CMake
+
+```bash
+# Create build directory and generate build files
+cmake -B build
+# Compile the project
+cmake --build build
+```
+
+### Building with Fortran Package Manager (FPM)
+
+```bash
+# Build and run with FPM
+fpm build
+```
+
+## Running
+
+### Running after CMake build
+
+```bash
+# Run the game after building with CMake
+./build/battleships
+```
+
+### Running with FPM
+
+```bash
+# Run directly with FPM
+fpm run
+```
+
+## Game Features
+
+### Starting a New Game
+
+The game will display a main menu with options:
+1. Place your ships
+2. Begin battle!
+3. Watch an automated battle
+4. About
+
+```
+# Example console interaction:
+<I> Enter your chosen option from the # column [1-4]: 1
+```
+
+### Ship Placement
+
+#### Manual Ship Placement
+
+To place ships manually, select option 1 from the main menu:
+
+```
+<I> Enter your chosen option from the # column [0-7]: 2
+<I> Enter x- and y- coordinates of ship's bow, from A1 to J10 [A-J 1-10]: B3
+<I> Enter direction of ship's bow [N,E,S,W]: E
+```
+
+Where:
+- Coordinates are in the format of column (A-J) and row (1-10)
+- Direction can be:
+  - N: North (ship extends downward)
+  - E: East (ship extends to the left)
+  - S: South (ship extends upward)
+  - W: West (ship extends to the right)
+
+#### Automatic Ship Placement
+
+```
+<I> Enter your chosen option from the # column [0-7]: 7
+<I> Do you want to clear the current ship arrangement and assign random ships automagically? [Y/N]: Y
+```
+
+### Gameplay
+
+#### Player Turn
+During your turn, enter coordinates to fire at the opponent's grid:
+
+```
+<I> Enter target x- and y- coordinates, e.g. A2 or A10 [A-J 1-10]: C5
+```
+
+#### Automatic Battle
+
+Watch the AI play against itself:
+
+```
+<I> Enter your chosen option from the # column [1-4]: 3
+<I> This will clear the current ship arrangement, do you wish to continue? [Y/N]: Y
+```
+
+### Grid Display
+
+The game displays two grids during battle:
+- Left grid (DEFENCE): Shows your ships and where the opponent has fired
+- Right grid (OFFENCE): Shows where you have fired and the results
+
+Symbols:
+- Space: Empty position
+- D, C, S, B, A: First letter of your ships (capital for bow position)
+- d, c, s, b, a: Rest of your ships (lowercase)
+- `.`: Miss
+- `*`: Hit
+
+## Utility Functions
+
+### Configuration
+The game automatically creates a config.dat file on first run with default settings:
+
+```
+[seed]
+operation=save
+bank=0
+```
+
+### AI Difficulty
+The AI uses a sophisticated targeting algorithm that:
+1. Fires randomly until it hits a ship
+2. Once a hit is registered, fires at adjacent spaces
+3. After a second hit, continues firing in the established direction
+
+# Battleships Game Implementation Deep Dive
+
+This markdown document provides a detailed analysis of key features in the Battleships game implemented in Fortran. The game is a modern Fortran implementation of the classic Battleships board game, featuring both player vs AI and AI vs AI gameplay modes.
+
+## Key Feature 1: AI Opponent Implementation
+
+One of the most sophisticated features of the Battleships implementation is its AI opponent, which uses a multi-stage targeting strategy to simulate human-like gameplay.
+
+### How the AI System Works
+
+The AI opponent in the game uses a state machine with three primary stages that represent increasingly sophisticated targeting strategies:
+
+1. **Stage 1: Random Targeting**
+   - This is the initial stage where the AI randomly selects grid coordinates to fire at
+   - The AI checks if the position has already been fired at before confirming the target
+   - If a hit is recorded, the AI stores the position and advances to Stage 2
+   - If all enemy ships are sunk during this stage, the AI ends its turn
+
+2. **Stage 2: Adjacent Space Targeting**
+   - When a ship is hit but not sunk, the AI intelligently targets adjacent spaces
+   - The AI constructs an array (called `adjacent`) that stores coordinates in all four directions (north, east, south, west) from the hit position
+   - It validates each adjacent position by checking if it's:
+     - Within the grid boundaries (coordinates 1-10)
+     - Not already fired at
+   - The AI then selects a valid starting position randomly and proceeds in either clockwise or anticlockwise rotation
+   - If a second hit is recorded, the AI advances to Stage 3
+   - If all adjacent positions yield misses or are invalid, the AI returns to Stage 1
+
+3. **Stage 3: Line Targeting**
+   - Once two hits are recorded, the AI uses linear targeting to finish off the ship
+   - It constructs a line array that extends up to 4 spaces in both directions from the first hit
+   - The AI systematically fires along this line until it either sinks the ship or exhausts valid positions
+   - If the ship is sunk, the AI returns to Stage 1
+   - If valid positions are exhausted without sinking the ship, the AI returns to Stage 1
+
+### AI State Tracking
+
+The AI's behavior is tracked through a dedicated `ai_saved_data` type that stores:
+
+- Current stage and scan stage
+- Position tracking (center, current position, adjacent positions, line array)
+- Direction indicators (clockwise/counterclockwise)
+- First-time execution flag
+
+```fortran
+TYPE ai_saved_data
+INTEGER :: stage, pass, scan_stage, start, clock, pos, line_pos
+INTEGER, DIMENSION(1:2) :: centre, try
+INTEGER, DIMENSION(1:4,1:2) :: adjacent
+INTEGER, DIMENSION(-4:4,1:2) :: line
+LOGICAL :: first_time  = .TRUE.
+END TYPE ai_saved_data
+```
+
+### Implementation Details
+
+In the `ai` subroutine, the AI's logic is implemented through:
+
+1. A primary `SELECT CASE(ai_data%stage)` structure that handles different targeting stages
+2. Nested `SELECT CASE(ai_data%scan_stage)` structures for sub-stages within each main stage
+3. Complex validation logic to ensure targets are valid and not repeated
+4. Integration with hit detection and ship identification to update strategy accordingly
+
+The AI can be configured with a delay parameter that adds a pause between actions, simulating a "thinking" time that makes the game feel more natural when playing against the computer.
+
+## Key Feature 2: Ship Placement and Grid Management
+
+The second key feature is the ship placement system, which includes both manual and automatic placement options with comprehensive validation.
+
+### Ship Representation
+
+Ships are represented by the `ship` type, which contains:
+
+```fortran
+TYPE ship
+INTEGER :: x, y, l, h
+! x = x-coordinate of bow, y = y-coordinate of bow, l = length of ship, h = number of hits
+CHARACTER (LEN=1) :: z, nu, nl, s
+! z = direction of bow [N,E,S,W]
+! nu = name upper case [D,C,S,B,A] ! to identify the bow of the ship
+! nl = name lower case [d,c,s,b,a] ! for the rest of ship
+! s = state [-,S] ! [ok,sunk]
+CHARACTER (LEN=16) :: n
+END TYPE ship
+```
+
+Each ship has:
+- Position coordinates (x, y) of the bow (front of the ship)
+- Length (l) and number of hits taken (h)
+- Direction facing (z) - North, East, South, West
+- Identifier characters for the bow (uppercase) and body (lowercase)
+- Status indicator for whether the ship is sunk
+- Name of the ship type (Destroyer, Cruiser, etc.)
+
+### Ship Placement Validation
+
+The game implements two critical validation functions for ship placement:
+
+1. **Grid Boundary Validation** (`checkship_grid`):
+   - Ensures ships don't extend beyond the 10x10 grid
+   - Checks positions based on the ship's direction and length
+   - Returns an error code if any part of the ship would be outside the grid
+
+2. **Ship Collision Validation** (`checkship_collision`):
+   - Prevents ships from overlapping with each other
+   - Uses ASCII character comparison to determine if a space is already occupied
+   - Returns an error code if the ship would collide with existing ships
+
+### Manual Ship Placement
+
+Players can manually place ships through the `shipdata` subroutine which:
+1. Prompts for coordinates and direction
+2. Validates inputs for correct format
+3. Checks boundary and collision conditions
+4. Either places the ship or reports errors to the player
+
+### Automatic Ship Placement
+
+The game also offers an automatic placement option through the `ranship` subroutine:
+
+1. Ships are sorted by descending length (to place the largest ships first)
+2. Random coordinates and direction are generated for each ship
+3. Validation checks ensure the ship fits within the grid and doesn't collide
+4. If validation fails, new random coordinates are generated until a valid placement is found
+5. The algorithm repeats until all ships are placed
+
+### Grid Display
+
+The game features sophisticated grid display routines:
+- `grid_1` displays a single grid (defense or offense)
+- `grid_2` displays two grids side by side
+- Grids include coordinate labels and compass directions
+- Different symbols represent hits, misses, and ships
+
+## Key Feature 3: Game Flow and Turn Management
+
+The third key feature is the game flow system that manages gameplay between human players and AI opponents.
+
+### Game Modes
+
+The game supports multiple modes:
+1. Player vs. AI - where the player manually places ships and battles against the AI
+2. AI vs. AI - where both sides are controlled by the AI for spectator enjoyment
+
+### Turn Structure
+
+The game implements an alternating turn structure:
+
+1. **Player's Turn:**
+   - Player inputs target coordinates
+   - The game validates the input and checks if the position has been targeted before
+   - Hit/miss results are displayed and the opponent's grid is updated
+   - If a ship is hit, the game identifies which ship and whether it's been sunk
+   - Score is updated accordingly
+
+2. **AI's Turn:**
+   - The AI algorithm selects a target
+   - Hit/miss result is calculated and displayed
+   - The player's grid is updated to show the hit or miss
+   - Ship hit identification and sinking check is performed
+   - Score and ship health are updated
+
+### Game Progression and Completion
+
+After each round:
+1. The game checks if all ships of either player are sunk
+2. If the win condition is met, the game announces the winner
+3. If both players have all ships sunk in the same round, it's a draw
+4. If no winner, the round counter increases and play continues
+
+### User Interface
+
+The game provides a clear user interface with:
+- ASCII art logo at the main menu
+- Clear menu systems for ship placement and gameplay
+- Visual grid representation of ship positions and firing results
+- Scoreboard showing hit counts and ship health
+- Status messages for game events (hits, misses, sunken ships)
+- Optional delays between actions to improve readability
+
+## Conclusion
+
+The Battleships game demonstrates effective use of Fortran's type system, array handling, and modular programming to implement a complete gaming experience. The AI opponent provides a challenging experience through its multi-stage targeting algorithm, while the ship placement system offers both flexibility and validation. The turn management system ties everything together into a cohesive gameplay flow.
+
+For developers looking to extend the game, these key systems provide solid building blocks for adding features like:
+- Network multiplayer mode
+- Additional ship types or grid sizes
+- Different AI difficulty levels
+- Custom rule variations
+- Enhanced graphical interfaces
+
+# Implemented User Stories
+
+## Core Gameplay
+- [x] As a player, I want to place my ships on a grid, so that I can strategically position my fleet.
+- [x] As a player, I want to target specific coordinates on my opponent's grid, so that I can try to hit their ships.
+- [x] As a player, I want to see when I've hit or missed an opponent's ship, so that I can plan my next move.
+- [x] As a player, I want to see when my ships have been hit, so that I can track my remaining fleet.
+- [x] As a player, I want to know when I've sunk an opponent's ship, so that I can focus on finding the remaining ships.
+- [x] As a player, I want to be notified when I've won or lost the game, so that I know when the game is over.
+- [x] As a player, I want to see the game's logo and title, so that I can feel immersed in the game.
+
+## Ship Placement
+- [x] As a player, I want to manually place ships by entering bow coordinates and orientation, so that I can control my defense strategy.
+- [x] As a player, I want to see visual feedback when my ship placement is invalid, so that I can correct my placement.
+- [x] As a player, I want to have the option to place my ships randomly, so that I can start playing quickly.
+- [x] As a player, I want to be prevented from placing ships that would extend beyond the grid or overlap with other ships, so that the game follows standard rules.
+- [x] As a player, I want to see my current ship placement on the grid, so that I can visualize my defense strategy.
+
+## Game Visuals
+- [x] As a player, I want to see the game board with labeled coordinates, so that I can easily choose my targets.
+- [x] As a player, I want to see a clear representation of hits, misses, and ships on the grid, so that I understand the current game state.
+- [x] As a player, I want to see a compass (N/E/S/W indicators) on the defense grid, so that I can easily understand ship orientations.
+- [x] As a player, I want to see both my defense and offense grids side-by-side, so that I can track all game activity at once.
+- [x] As a player, I want to see a scoreboard showing hit counts, so that I can track game progress.
+
+## AI Opponent
+- [x] As a player, I want to play against an AI opponent, so that I can play single-player.
+- [x] As a player, I want the AI to use intelligent targeting strategies, so that the game is challenging.
+- [x] As a player, I want to see the AI's targeting process with some delay, so that I can follow what's happening.
+- [x] As a player, I want the AI to identify and sink my ships efficiently, so that the game feels realistic.
+
+## Game Options
+- [x] As a player, I want to view the main menu with various game options, so that I can choose my preferred game mode.
+- [x] As a player, I want to read help information about how to play the game, so that I can understand the rules.
+- [x] As a player, I want to view information about the game's creators, so that I know who developed it.
+- [x] As a player, I want to watch an automated battle between two AI players, so that I can observe game strategies.
+- [x] As a player, I want to have configuration options saved between game sessions, so that my preferences are remembered.
+
+## Technical Features
+- [x] As a developer, I want the game to use standard Fortran features, so that it can run on modern Fortran compilers.
+- [x] As a developer, I want robust input validation, so that the game handles unexpected input gracefully.
+- [x] As a developer, I want to use escape characters for screen clearing, so that the game works across platforms.
+- [x] As a developer, I want to support both CMake and FPM build systems, so that users have multiple build options.
+- [x] As a developer, I want organized code with clear module structure, so that maintenance is easier.
