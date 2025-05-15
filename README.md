@@ -1,7 +1,8 @@
-# battleships in Fotran
+# Red battleships in Fotran
 
-Fortran 2008 Battleship game, original code from https://github.com/surftheseawing/battleships.
+Fortran 2008 Red Battleship game, original code from https://github.com/surftheseawing/battleships.
 We observed the original code could be modernized to work on all modern Fortran compilers.
+This is all about Red Battleships. The most important part is that they are red!
 
 The changes we did include:
 
